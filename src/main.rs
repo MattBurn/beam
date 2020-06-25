@@ -3,9 +3,11 @@ mod drawable;
 mod sphere;
 mod camera;
 
+use rand::Rng;
 use cgmath::Vector3;
 use cgmath::prelude::*;
 
+use camera::Camera;
 use drawable::{
     Drawable,
     Drawables,
@@ -17,10 +19,12 @@ const WIDTH: usize = 200;
 const HEIGHT: usize = 100;
 
 fn main() {
-    let lower_left_corner = cgmath::Vector3::new(-2.0, -1.0, -1.0);
-    let horizontal = cgmath::Vector3::<f32>::unit_x() * 4.0;
-    let vertical = cgmath::Vector3::<f32>::unit_y() * 2.0;
-    let origin = cgmath::Vector3::new(0.0, 0.0, 0.0);
+    let camera = Camera::new(
+        cgmath::Vector3::new(0.0, 0.0, 0.0),
+        cgmath::Vector3::<f32>::unit_x() * 4.0,
+        cgmath::Vector3::<f32>::unit_y() * 2.0,
+        cgmath::Vector3::new(-2.0, -1.0, -1.0),
+    );
 
     let mut world = Drawables::new();
 
@@ -37,16 +41,23 @@ fn main() {
     world.push(&sphere1);
     world.push(&sphere2);
 
+    let nsamples: u32 = 100;
+    
     // Output An Image
     let mut imgbuf = image::ImageBuffer::new(WIDTH as u32, HEIGHT as u32);
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-        let iy = (HEIGHT as u32 - y) as f32;
-        let r = ray::Ray::new(origin, lower_left_corner + (x as f32)*horizontal/WIDTH as f32 + iy*vertical/HEIGHT as f32);
-        let c = color(&r, &world);
+        
+        let mut rng = rand::thread_rng();
+        let col = (0..nsamples).map(|_| {
+            let u = (x as f32 + rng.gen::<f32>()) / WIDTH as f32;
+            let v = ((HEIGHT as u32 - y) as f32 + rng.gen::<f32>()) / HEIGHT as f32;
+            let r = camera.get_ray(u, v);
+            color(&r, &world)
+        }).sum::<Vector3<f32>>() / nsamples as f32;
 
-        let r = (255.0 * c[0]) as u8;
-        let g = (255.0 * c[1]) as u8;
-        let b = (255.0 * c[2]) as u8;
+        let r = (255.0 * col[0]) as u8;
+        let g = (255.0 * col[1]) as u8;
+        let b = (255.0 * col[2]) as u8;
         *pixel = image::Rgb([r, g, b]);
     }
     imgbuf.save_with_format("output.png", image::ImageFormat::Png).unwrap();
