@@ -1,20 +1,32 @@
-use cgmath::Vector3;
+use cgmath::{
+    Deg,
+    Rad,
+    Vector3,
+};
+use cgmath::prelude::*;
 use crate::ray::Ray;
 
 pub struct Camera {
     origin: Vector3<f32>,
+    lower_left_corner: Vector3<f32>,
     horizontal: Vector3<f32>,
     vertical: Vector3<f32>,
-    lower_left_corner: Vector3<f32>,
 }
 
 impl Camera {
-    pub fn new(origin: Vector3<f32>, horizontal: Vector3<f32>, vertical: Vector3<f32>, lower_left_corner: Vector3<f32>) -> Self {
+    pub fn new(origin: Vector3<f32>, look_at: Vector3<f32>, vup: Vector3<f32>, fov: f32, width: u32, height: u32) -> Self {
+        let fovy: Rad<f32> = Deg(fov).into();
+        let aspect = width as f32 / height as f32;
+        let half_height = (0.5 * fovy.0).tan();
+        let half_width = aspect * half_height;
+        let w = (origin - look_at).normalize();
+        let u = vup.cross(w);
+        let v = w.cross(u);
         Self {
             origin,
-            horizontal,
-            vertical,
-            lower_left_corner,
+            lower_left_corner: origin - u*half_width - v*half_height - w,
+            horizontal:  2.0 * half_width * u,
+            vertical: 2.0 * half_height * v,
         }
     }
 

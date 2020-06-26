@@ -1,5 +1,6 @@
 pub mod diffuse;
 pub mod metal;
+pub mod glass;
 
 use crate::drawable::Hit;
 use crate::ray::Ray;
@@ -8,6 +9,7 @@ use cgmath::prelude::*;
 
 pub use diffuse::Diffuse;
 pub use metal::Metal;
+pub use glass::Glass;
 
 pub struct Scatter<'a> {
     pub ray: Ray,
@@ -29,6 +31,25 @@ pub trait Material {
 
 fn reflect(v: Vector3<f32>, n: Vector3<f32>) -> Vector3<f32> {
     v - 2.0 * v.dot(n) * n
+}
+
+fn refract(v: Vector3<f32>, n: Vector3<f32>, ni_over_nt: f32) -> Option<Vector3<f32>> {
+    let uv = v.normalize();
+    let dt = uv.dot(n);
+    let discriminant = 1.0 - ni_over_nt*ni_over_nt*(1.0 - dt*dt);
+    if discriminant > 0.0 {
+        Some(
+            ni_over_nt*(uv - n*dt) - n*discriminant.sqrt()
+        )
+    } else {
+        None
+    }
+}
+
+#[inline(always)]
+fn schlick(cosine: f32, refraction_index: f32) -> f32 {
+    let r0 = 2.0 * (1.0-refraction_index)/(1.0+refraction_index);
+    r0 + (1.0 - r0)*(1.0 - cosine).powi(5)
 }
 
 fn random_in_unit_sphere() -> Vector3<f32> {
