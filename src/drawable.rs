@@ -1,22 +1,25 @@
 use cgmath::Vector3;
 use crate::ray::Ray;
+use crate::material::Material;
 
 pub trait Drawable {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<Hit>;
 }
 
-pub struct Hit {
+pub struct Hit<'a> {
     pub t: f32,
     pub point: Vector3<f32>,
     pub normal: Vector3<f32>, 
+    pub material: &'a dyn Material,
 }
 
-impl Hit {
-    pub fn new(t: f32, point: Vector3<f32>, normal: Vector3<f32>) -> Self {
+impl<'a> Hit<'a> {
+    pub fn new(t: f32, point: Vector3<f32>, normal: Vector3<f32>, material: &'a dyn Material) -> Self {
         Self {
             t,
             point,
             normal,
+            material,
         }
     }
 }
@@ -29,6 +32,12 @@ impl<'a> Drawables<'a> {
     pub fn new() -> Self {
         Self {
             _drawables: Vec::new(),
+        }
+    }
+
+    pub fn new_from(drawables: Vec<&'a dyn Drawable>) -> Self {
+        Self {
+            _drawables: drawables,
         }
     }
 }
